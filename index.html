@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gravitational Lensing Simulator</title>
+<script src="https://cdn.jsdelivr.net/npm/p5@1.11.5/lib/p5.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    overflow: hidden;
+    background: black;
+    font-family: 'Space Mono', monospace;
+}
+
+canvas { display: block; }
+</style>
+</head>
+<body>
+
+<script>
+
+function setup()
+{
+    createCanvas(windowWidth, windowHeight, WEBGL);
+}
+
+function draw()
+{
+    background(0);
+}
+
+function windowResized()
+{
+    resizeCanvas(windowWidth, windowHeight);
+}
+
+
+
+function draw()
+{
+    background(0);
+    
+    noStroke();
+    fill(255);
+    circle(0, 0, 40);
+}
+
+</script>
+</body>
+</html>
+
+</script>
+</body>
+</style>
+</title></head>
+</html>
