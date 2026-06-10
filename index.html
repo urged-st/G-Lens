@@ -78,6 +78,7 @@ function worldMouse()
 }
 
 
+
 function draw()
 
 {
@@ -102,15 +103,49 @@ function draw()
         point(l.x + lensX, l.y + lensY);
     }
 
-    
+    // lens effect field w no distortion
+    noStroke();
+    for (let r = 180; r > 0; r -= 6)
+    {
+        fill(120, 180, 255, 5);
+        circle(lensX, lensY, r);
+    }
+
+    fill(120, 180, 255, 70);
+    circle(lensX, lensY, 22);
+
+  // SOURCE (a continuous field cuase i need distortion)
+  let radius = 32;
+
+  for (let x = -radius; x <= radius; x += 1)
+  {
+    for (let y = -radius; y <= radius; y += 1)
+    {
+      let d = x*x + y*y;
+      if (d > radius*radius) continue;
+
+      let px = sourceX + x;
+      let py = sourceY + y;
+
+      let l = lens(px - lensX, py - lensY);
+
+      let intensity = exp(-d / 120);
+
+      fill(255, 120, 120, 240 * intensity);
+      circle(l.x + lensX, l.y + lensY, 2);
+    }
+  }
+
+  pop();
+
   fill(255);
   textSize(14);
-  text("GRAV LENS SIM", 20, 30);
+  text("G-Lens", 20, 30);
   text("drag red = source", 20, 55);
   text("drag blue = lens", 20, 80);
   text("drag background = pan", 20, 105);
 }
-
+  
 function mousePressed()
 {
   let w = worldMouse();
