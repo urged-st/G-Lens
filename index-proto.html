@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Gravitational Lensing Simulator</title>
+
+<script src="https://cdn.jsdelivr.net/npm/p5@1.11.5/lib/p5.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  overflow:hidden;
+  background:black;
+  font-family:"Space Mono", monospace;
+}
+canvas{display:block;}
+</style>
+</head>
+
+<body>
+
+
+<script>
+
+let massSlider;
+
+
+
+let stars = []
+
+let lensX = 0;
+let lensY = 0;
+
+let sourceX = 450;
+let sourceY = -150;
+
+let dragMode = null;
+
+let zoom = 1;
+
+let cameraX = 0;
+let cameraY = 0;
+
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+
+function setup()
+{
+  createCanvas(windowWidth, windowHeight);
+  textFont("Space Mono");
+
+  massSlider = createSlider(1000, 30000, 8000, 100);
+  massSlider.position(20, 120);
+
+  for (let i = 0; i < 12000; i++)
+  {
+    stars.push({
+      x: random(-8000, 8000),
+      y: random(-8000, 8000),
+      s: random(1, 2.2)
+    });
+  }
+}
+
+
+function lens(dx, dy)
+{
+    let r2 = dx * dx + dy * dy;
+    let r = sqrt(r2);
+
+    r = max(r, 8);
+
+    let mass = massSlider.value();
+
+    // stronger, less aggressive falloff
+    let alpha = (mass * 20) / (r2 + 800);
+
+    let angle = atan2(dy, dx);
+
+    let tx = -sin(angle);
+    let ty = cos(angle);
+
+    return {
+        x: dx + tx * alpha,
+        y: dy + ty * alpha
+    };
+}
+
+function worldMouse()
+{
+  return {
+    x: (mouseX - width/2) / zoom + cameraX,
+    y: (mouseY - height/2) / zoom + cameraY
+  };
+}
+
+
+
+function draw()
+
+{
+    background(0);
+
+    push();
+    translate(width/2, height/2)
+     scale(zoom);
+    translate(-cameraX, -cameraY);
+
+    stroke(255);
+
+    // stars (lensed)
+    for (let s of stars)
+    {
+        let dx = s.x - lensX;
+        let dy = s.y - lensY;
+
+        let l = lens(dx, dy);
+
+        strokeWeight(s.s);
+        point(l.x + lensX, l.y + lensY);
+    }
+
+    // lens effect field w no distortion
+    noStroke();
+    for (let r = 180; r > 0; r -= 6)
+    {
+        fill(120, 180, 255, 5);
+        circle(lensX, lensY, r);
+    }
+
+    fill(120, 180, 255, 70);
+    circle(lensX, lensY, 22);
+
+    
+
+  // SOURCE (a continuous field cuase i need distortion)
+  let spacing = 2;
+  let size = 2;
+  let radius = 90;
+
+  for (let sx = -radius; sx <= radius; sx += spacing)
+  {
+      for (let sy = -radius; sy <= radius; sy += spacing)
+      {
+          let worldX = sourceX + sx;
+          let worldY = sourceY + sy;
+
+          let dx = worldX - lensX;
+          let dy = worldY - lensY;
+
+          let l = lens(dx, dy);
+
+          let x = l.x + lensX;
+          let y = l.y + lensY;
+
+          let intensity = exp(-(sx*sx + sy*sy) / 140);
+
+          fill(255, 120, 120, 220 * intensity);
+          circle(x, y, size);
+      }
+  }
+
+  pop();
+
+  fill(255);
+  textSize(14);
+
+  let alignment =
+  dist(
+    sourceX,
+    sourceY,
+    lensX,
+    lensY
+  );
+
+  text("G-Lens", 20, 30);
+  text("drag red = source", 20, 55);
+  text("drag blue = lens", 20, 80);
+  text("drag background = pan", 20, 105);
+
+  text(
+    "lens mass: " +
+    massSlider.value(),
+    20,
+    155
+  );
+
+  text(
+    "alignment: " +
+    nf(alignment, 1, 1),
+    20,
+    180
+  );
+
+  
+
+
+
+}
+  
+function mousePressed()
+{
+    let w = worldMouse();
+
+    lastMouseX = mouseX;
+    lastMouseY = mouseY;
+
+    // UI area
+    if (
+        mouseX < 260 &&
+        mouseY < 220
+    )
+    {
+        dragMode = null;
+        return;
+    }
+
+    if (
+        dist(
+            w.x,
+            w.y,
+            sourceX,
+            sourceY
+        ) < 22
+    )
+    {
+        dragMode = "source";
+    }
+
+    else if (
+        dist(
+            w.x,
+            w.y,
+            lensX,
+            lensY
+        ) < 60
+    )
+    {
+        dragMode = "lens";
+    }
+
+    else
+    {
+        dragMode = "pan";
+    }
+}
+
+function mouseDragged()
+{
+  let w = worldMouse();
+
+  if (dragMode === "source")
+  {
+    sourceX = w.x;
+    sourceY = w.y;
+  }
+
+  else if (dragMode === "lens")
+  {
+    lensX = w.x;
+    lensY = w.y;
+  }
+
+else if (dragMode === "pan")
+  {
+    let dx = (mouseX - lastMouseX) / zoom;
+    let dy = (mouseY - lastMouseY) / zoom;
+
+    cameraX -= dx;
+    cameraY -= dy;
+  }
+
+  lastMouseX = mouseX;
+  lastMouseY = mouseY;
+}
+
+function mouseReleased()
+{
+  dragMode = null;
+}
+
+function mouseWheel(e)
+{
+  let w = worldMouse();
+
+  let factor = (e.delta > 0) ? 0.9 : 1.1;
+
+  zoom *= factor;
+  zoom = constrain(zoom, 0.3, 3);
+
+  cameraX = w.x - (mouseX - width/2) / zoom;
+  cameraY = w.y - (mouseY - height/2) / zoom;
+
+  return false;
+}
+
+function windowResized()
+{
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+</script>
+
+</body>
+</html>
