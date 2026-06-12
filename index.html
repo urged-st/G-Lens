@@ -2,23 +2,46 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Gravitational Lensing Shader</title>
+<title>G-Lens</title>
 
 <script src="https://cdn.jsdelivr.net/npm/p5@1.11.5/lib/p5.min.js"></script>
 
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: black;
+html, body {
+    margin: 0;
+    overflow: hidden;
+    background: black;
 }
-canvas { display: block; }
+
+#glCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+}
+
+canvas {
+    position: fixed;
+    inset: 0;
+}
+
+#glCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+}
+
+.p5Canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+}
 </style>
 </head>
 
 <body>
-<script src="sketch.js"></script>
+
+<script src="render.js"></script>
+<script src="ui.js"></script>
+
 </body>
 </html>
-
-
