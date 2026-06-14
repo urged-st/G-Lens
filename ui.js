@@ -1,56 +1,76 @@
-function setup() {
+let massSlider;
+let dragStartX = 0;
+let dragStartY = 0;
+let draggingLens = false;
 
-    createCanvas(
-        windowWidth,
-        windowHeight
+function setup()
+{
+    let cnv = createCanvas(windowWidth, windowHeight);
+    cnv.style('position', 'absolute');
+    cnv.style('top', '0');
+    cnv.style('left', '0');
+    cnv.style('z-index', '1');
 
-    );
-    clear()
+    massSlider = createSlider(1000, 30000, 8000, 100);
+    massSlider.position(20, 20);
+    massSlider.style('z-index', '2');
+
     initGL();
 }
 
-function draw() {
-
+function draw()
+{
     clear();
 
-    fill(
-        100,
-        180,
-        255
-    );
+    mass = massSlider.value();
 
     noStroke();
+    fill(100, 180, 255);
 
     circle(
         lensX * width,
         lensY * height,
         30
     );
-
-    fill(255);
-
-    text(
-        "G-Lens",
-        20,
-        30
-    );
 }
 
-function mouseDragged() {
+function mousePressed()
+{
+    if(mouseX < 220 && mouseY < 80)
+    {
+        return;
+    }
 
-    lensX =
-        mouseX / width;
+    let lensScreenX = lensX * width;
+    let lensScreenY = lensY * height;
 
-    lensY =
-        mouseY / height;
+    let dx = mouseX - lensScreenX;
+    let dy = mouseY - lensScreenY;
+
+    if(sqrt(dx*dx + dy*dy) < 20)
+    {
+        draggingLens = true;
+        dragStartX = mouseX - lensScreenX;
+        dragStartY = mouseY - lensScreenY;
+    }
 }
 
-function windowResized() {
+function mouseDragged()
+{
+    if(!draggingLens) return;
 
-    resizeCanvas(
-        windowWidth,
-        windowHeight
-    );
+    lensX = (mouseX - dragStartX) / width;
+    lensY = (mouseY - dragStartY) / height;
+}
 
+
+function mouseReleased()
+{
+    draggingLens = false;
+}
+
+function windowResized()
+{
+    resizeCanvas(windowWidth, windowHeight);
     resizeGL();
 }

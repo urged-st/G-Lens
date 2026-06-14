@@ -47,19 +47,27 @@ function initGL() {
         {
             vec2 uv = v_uv;
 
-            // convert lens from pixels to 0..1, flipping y to match WebGL
+            float aspect = u_res.x / u_res.y;
+
             vec2 lensUV = vec2(
                 u_lens.x / u_res.x,
                 1.0 - u_lens.y / u_res.y
             );
 
-            vec2 d = uv - lensUV;
+            // work in aspect-corrected space for distance calc
+            vec2 d = vec2(
+                (uv.x - lensUV.x) * aspect,
+                uv.y - lensUV.y
+            );
 
             float r = length(d);
 
             float strength = u_mass * 0.0000005;
+            float theta = strength / (r * r + 0.01);
 
-            uv -= normalize(d) * strength / (r + 0.05);
+            // apply deflection in corrected space then convert back
+            uv.x -= (d.x / aspect) * theta / r;
+            uv.y -= d.y * theta / r;
 
             uv = clamp(uv, 0.0, 1.0);
 
@@ -198,7 +206,7 @@ function loadTexture() {
         requestAnimationFrame(render);
     };
 
-    img.src = "assets/andr2.jpg";
+    img.src = "assets/LeoP.jpg";
 }
 
 function render() {
