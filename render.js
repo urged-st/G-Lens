@@ -62,7 +62,7 @@ function initGL() {
 
             float r = length(d);
 
-            float strength = u_mass * 0.0000005;
+            float strength = u_mass * 0.00000015;
             float theta = strength / (r * r + 0.01);
 
             // apply deflection in corrected space then convert back
