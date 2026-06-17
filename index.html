@@ -1,70 +1,546 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+
 <meta charset="UTF-8">
 <title>G-Lens</title>
-
 <script src="https://cdn.jsdelivr.net/npm/p5@1.11.5/lib/p5.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
 <style>
-html, body {
-    margin: 0;
-    overflow: hidden;
-    background: black;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  overflow: hidden;
+  background: black;
+  font-family: 'Space Mono', monospace;
 }
 
 #glCanvas {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-}
-
-canvas {
-    position: fixed;
-    inset: 0;
-}
-
-#glCanvas {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
 }
 
 .p5Canvas {
-    position: fixed;
-    inset: 0;
-    z-index: 10;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
 }
 
-#controls {
+/* info overlay */
+#info-overlay {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  inset: 0;
   z-index: 10;
-  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+#info-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#info-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+#info-title {
+  position: relative;
+  z-index: 2;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 48px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 36px;
+  transform: translateY(-24px);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.22,1,0.36,1) 0.1s,
+              opacity   0.5s ease 0.1s;
+}
+
+#info-overlay.visible #info-title {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+#info-title span {
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: #4da3ff;
+  margin: 10px auto 0;
+  border-radius: 2px;
+}
+
+#cards-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  transform: translateY(40px);
+  opacity: 0;
+  transition: transform 0.55s cubic-bezier(0.22,1,0.36,1) 0.2s,
+              opacity   0.55s ease 0.2s;
+}
+
+#info-overlay.visible #cards-row {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.info-card {
+  width: 260px;
+  background: rgba(12, 18, 30, 0.85);
+  border: 1px solid rgba(77, 163, 255, 0.25);
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+
+.info-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(77,163,255,0.6), transparent);
+}
+
+.info-card:hover {
+  border-color: rgba(77, 163, 255, 0.65);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(77,163,255,0.12);
+}
+
+.card-eyebrow {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #4da3ff;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 1px;
+  background: #4da3ff;
+}
+
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 18px;
+  line-height: 1.2;
+}
+
+.card-body {
   font-family: 'Space Mono', monospace;
   font-size: 12px;
+  line-height: 1.85;
+  color: rgba(200, 215, 240, 0.75);
+}
+
+.card-body li {
+  list-style: none;
+  padding-left: 16px;
+  position: relative;
+  margin-bottom: 2px;
+}
+
+.card-body li::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  color: #4da3ff;
+}
+
+/* highlight middle card */
+.info-card.highlight {
+  border-color: rgba(255, 200, 80, 0.35);
+  background: rgba(20, 16, 10, 0.90);
+}
+
+.info-card.highlight::before {
+  background: linear-gradient(90deg, transparent, rgba(255,200,80,0.5), transparent);
+}
+
+.info-card.highlight .card-eyebrow { color: #ffc850; }
+.info-card.highlight .card-eyebrow::before { background: #ffc850; }
+
+.info-card.highlight:hover {
+  border-color: rgba(255,200,80,0.7);
+  box-shadow: 0 16px 40px rgba(255,200,80,0.10);
+}
+
+#about-card { cursor: pointer; }
+
+/* article view */
+#article-view {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+#article-view.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#cards-row,
+#info-title,
+#dismiss-hint {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#info-overlay.article-open #cards-row,
+#info-overlay.article-open #info-title,
+#info-overlay.article-open #dismiss-hint {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-12px);
+}
+
+#article-inner {
+  width: min(680px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: rgba(12, 14, 22, 0.95);
+  border: 1px solid rgba(255,200,80,0.25);
+  border-radius: 20px;
+  padding: 48px 52px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,200,80,0.3) transparent;
+}
+
+#article-inner::-webkit-scrollbar { width: 4px; }
+#article-inner::-webkit-scrollbar-thumb { background: rgba(255,200,80,0.3); border-radius: 2px; }
+
+#article-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: rgba(255,200,80,0.6);
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-bottom: 32px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+#article-back:hover { color: #ffc850; }
+#article-back::before { content: '←'; font-size: 14px; }
+
+#article-heading {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+#article-heading-bar {
+  width: 36px;
+  height: 2px;
+  background: #ffc850;
+  border-radius: 2px;
+  margin-bottom: 28px;
+}
+
+#article-body p {
+  font-size: 13px;
+  line-height: 2;
+  color: rgba(200,215,240,0.75);
+  margin-bottom: 18px;
+}
+
+.fun-fact {
+  margin-top: 28px;
+  padding: 16px 20px;
+  border-left: 2px solid #ffc850;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-#glCanvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 0;
+.fun-fact-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffc850;
 }
 
+#fun-fact-text {
+  font-size: 12px;
+  line-height: 1.8;
+  color: rgba(200,215,240,0.65);
+  font-style: italic;
+}
+
+#dismiss-hint {
+  position: relative;
+  z-index: 2;
+  margin-top: 32px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease 0.35s, transform 0.5s ease 0.35s;
+}
+
+#info-overlay.visible #dismiss-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ? button */
+#info-btn {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 100;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(10,18,32,0.85);
+  border: 1px solid rgba(77,163,255,0.45);
+  color: #4da3ff;
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  backdrop-filter: blur(4px);
+}
+
+#info-btn:hover {
+  background: rgba(77,163,255,0.15);
+  border-color: #4da3ff;
+  transform: scale(1.08);
+}
+
+#github-logo {
+  position: fixed;
+  top: 18px;
+  right: 66px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(77,163,255,0.45);
+  background: rgba(10,18,32,0.85);
+  display: block;
+  z-index: 100;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+#github-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+#github-logo:hover {
+  transform: translateY(-2px) scale(1.08);
+  border-color: #4da3ff;
+  box-shadow: 0 10px 25px rgba(77,163,255,0.18);
+}
+
+#github-logo:hover img { transform: scale(1.08); }
 </style>
 </head>
 
 <body>
 
+<!-- info overlay -->
+<div id="info-overlay" class="visible">
+  <div id="info-backdrop"></div>
 
+  <div id="info-title">
+    G-Lens
+    <span></span>
+  </div>
+
+  <div id="cards-row">
+
+    <div class="info-card">
+      <div class="card-eyebrow">01 &nbsp;Controls</div>
+      <div class="card-title">How To Use</div>
+      <div class="card-body">
+        <ul>
+          <li>Drag the lens to reposition it</li>
+          <li>Adjust mass with the slider</li>
+          <li>Choose a preset from the dropdown</li>
+          <li>Toggle lensing on/off with the button</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-card highlight" id="about-card">
+      <div class="card-eyebrow">02 &nbsp;Science</div>
+      <div class="card-title">Gravitational Lensing</div>
+      <div class="card-body">
+        <ul>
+          <li>Massive objects bend the path of light</li>
+          <li>Background galaxies appear stretched or duplicated</li>
+          <li>Einstein rings form when alignment is perfect</li>
+          <li>Used to detect dark matter and measure cosmic distances</li>
+        </ul>
+        <p style="margin-top:14px; font-size:10px; color:rgba(255,200,80,0.5); letter-spacing:0.1em; text-transform:uppercase;">Click to read more →</p>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-eyebrow">03 &nbsp;Display</div>
+      <div class="card-title">What It Shows</div>
+      <div class="card-body">
+        <ul>
+          <li>Real deep field background image</li>
+          <li>GLSL shader warps light paths in real time</li>
+          <li>Lens mass controls distortion strength</li>
+          <li>Presets simulate different object types</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="dismiss-hint">Press ? or click anywhere to begin</div>
+
+  <div id="article-view">
+    <div id="article-inner">
+      <button id="article-back">Back</button>
+      <div id="article-heading">Gravitational Lensing</div>
+      <div id="article-heading-bar"></div>
+      <div id="article-body">
+        <p>Einstein's general relativity predicts that mass curves spacetime itself. Light, following the shortest path through curved spacetime, bends around massive objects — an effect confirmed during the 1919 solar eclipse by Arthur Eddington, which made Einstein world-famous overnight.</p>
+        <p>When a massive foreground object sits between us and a distant light source, it acts as a cosmic lens. The background source can appear stretched into arcs, duplicated into multiple images, or — if the alignment is perfect — smeared into a complete ring of light called an Einstein ring. The radius of that ring depends on the mass of the lens and the distances involved.</p>
+        <p>Gravitational lensing has become one of astronomy's most powerful tools. Strong lensing, where arcs and rings are visible, lets astronomers directly measure the mass of galaxy clusters including the dark matter that makes up most of their mass. Weak lensing, a statistical distortion across millions of background galaxies, maps the large-scale structure of dark matter across the universe.</p>
+        <p>Microlensing — where a single star lenses a background star, briefly brightening it — is used to hunt for exoplanets and rogue planets drifting through the galaxy with no host star.</p>
+        <p>The deep field images you see here are real Hubble and JWST observations. Almost every smear, arc, and elongated blob in a deep field is a galaxy — and many of those distorted shapes are caused by real gravitational lensing from foreground clusters millions of light years away.</p>
+        <div class="fun-fact">
+          <span class="fun-fact-label">Fun fact</span>
+          <span id="fun-fact-text"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- fixed buttons top right -->
+<a id="github-logo" href="https://github.com/urged-st" target="_blank" rel="noopener noreferrer">
+  <img src="assets/logo.jpg" alt="logo">
+</a>
+<button id="info-btn">?</button>
+
+<script>
+// overlay toggle
+const overlay  = document.getElementById('info-overlay');
+const infoBtn  = document.getElementById('info-btn');
+let   infoOpen = true;
+
+function toggleInfo() {
+  infoOpen = !infoOpen;
+  overlay.classList.toggle('visible', infoOpen);
+  if (!infoOpen) closeArticle();
+}
+
+infoBtn.addEventListener('click', toggleInfo);
+
+overlay.addEventListener('click', e => {
+  if (e.target === overlay || e.target.id === 'info-backdrop' || e.target.id === 'dismiss-hint') {
+    toggleInfo();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === '?') toggleInfo();
+});
+
+// fun facts
+const facts = [
+  "The first Einstein ring was confirmed in 1987 using radio telescopes — the lensed object is now known as MG 1131+0456.",
+  "Gravitational lensing can make objects appear up to 50× brighter, letting us see galaxies that would otherwise be completely invisible.",
+  "JWST's deep fields contain dozens of gravitationally lensed arcs — some of the most distant galaxies ever observed.",
+  "The Bullet Cluster's lensing map was one of the strongest pieces of direct evidence for the existence of dark matter.",
+  "Light from quasars has been gravitationally lensed by entire galaxies sitting directly in the line of sight.",
+];
+
+document.getElementById('fun-fact-text').textContent =
+    facts[Math.floor(Math.random() * facts.length)];
+
+// article open/close
+const articleView = document.getElementById('article-view');
+
+function openArticle() {
+  overlay.classList.add('article-open');
+  articleView.classList.add('visible');
+}
+
+function closeArticle() {
+  overlay.classList.remove('article-open');
+  articleView.classList.remove('visible');
+}
+
+document.getElementById('about-card').addEventListener('click', openArticle);
+
+document.getElementById('article-back').addEventListener('click', e => {
+  e.stopPropagation();
+  closeArticle();
+});
+</script>
 
 <script src="render.js"></script>
 <script src="ui.js"></script>
 
 </body>
-</html>

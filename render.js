@@ -54,7 +54,7 @@ function initGL() {
                 1.0 - u_lens.y / u_res.y
             );
 
-            // work in aspect-corrected space for distance calc
+            // fix to work in aspect-corrected space for distance calc
             vec2 d = vec2(
                 (uv.x - lensUV.x) * aspect,
                 uv.y - lensUV.y
@@ -65,7 +65,7 @@ function initGL() {
             float strength = u_mass * 0.00000015;
             float theta = strength / (r * r + 0.01);
 
-            // apply deflection in corrected space then convert back
+            // apply deflection in corrected space, conv back (ong im smart for ts :3)
             uv.x -= (d.x / aspect) * theta / r;
             uv.y -= d.y * theta / r;
 
@@ -248,7 +248,7 @@ function render() {
             program,
             "u_mass"
         ),
-        mass
+        lensingVisible ? mass : 0
     );
 
     gl.uniform2f(
