@@ -5,6 +5,7 @@ let texture;
 let lensX = 0.5;
 let lensY = 0.5;
 let mass = 8000;
+let bgScale = 1.0;
 
 function initGL() {
 
@@ -42,6 +43,7 @@ function initGL() {
         uniform vec2 u_lens;
         uniform vec2 u_res;
         uniform float u_mass;
+        uniform float u_scale;
 
         void main()
         {
@@ -62,7 +64,7 @@ function initGL() {
 
             float r = length(d);
 
-            float strength = u_mass * 0.00000015;
+            float strength = u_mass * 0.00000015 * u_scale;
             float theta = strength / (r * r + 0.01);
 
             // apply deflection in corrected space, conv back (ong im smart for ts :3)
@@ -148,14 +150,23 @@ function initGL() {
         0
     );
     requestAnimationFrame(render);
-    loadTexture();
+    loadTexture("assets/LeoP.jpg");
 }
 
-function loadTexture() {
+function setBackground(path, scale) {
+    bgScale = scale;
+    loadTexture(path);
+}
+
+function loadTexture(path) {
 
     const img = new Image();
 
     img.onload = () => {
+
+        if (texture) {
+            gl.deleteTexture(texture);
+        }
 
         texture =
             gl.createTexture();
@@ -206,7 +217,7 @@ function loadTexture() {
         requestAnimationFrame(render);
     };
 
-    img.src = "assets/LeoP.jpg";
+    img.src = path;
 }
 
 function render() {
@@ -258,6 +269,14 @@ function render() {
         ),
         innerWidth,
         innerHeight
+    );
+
+    gl.uniform1f(
+        gl.getUniformLocation(
+            program,
+            "u_scale"
+        ),
+        bgScale
     );
 
     gl.drawArrays(

@@ -7,6 +7,22 @@ let presetSelect;
 let currentPreset = 'simple';
 let lensingVisible = true
 let bgImg;
+let bgSelect;
+let currentBg;
+let currentBgScale = 1.0;
+
+const backgrounds = [
+    {
+        name: 'Leo P (Dwarf Galaxy)',
+        path: 'assets/LeoP.jpg',
+        scale: 1.0
+    },
+    {
+        name: 'Hubble Ultra Deep Field 2014',          // TODO: rename once you know what it is
+        path: 'assets/bg2.webp',        // TODO: swap to your actual filename
+        scale: 0.8                     // TODO: tune by eye once it's loaded
+    }
+];
 
 const presets =
 {
@@ -93,15 +109,40 @@ function setup()
         toggleBtn.html(lensingVisible ? 'hide lensing' : 'show lensing');
     });
 
+    // background switcher
+    bgSelect = createSelect();
+    bgSelect.position(20, 135);
+    bgSelect.style('z-index', '2');
 
-    bgImg = loadImage('assets/LeoP.jpg');
+    for (let i = 0; i < backgrounds.length; i++)
+    {
+        bgSelect.option(backgrounds[i].name);
+    }
+
+    bgSelect.selected(backgrounds[0].name);
+
+    bgSelect.changed(() =>
+    {
+        let chosen = backgrounds.find(b => b.name === bgSelect.value());
+
+        if (!chosen) return;
+
+        currentBg = chosen.name;
+        currentBgScale = chosen.scale;
+
+        bgImg = loadImage(chosen.path);
+        setBackground(chosen.path, chosen.scale);
+    });
+
+    currentBg = backgrounds[0].name;
+    bgImg = loadImage(backgrounds[0].path);
     initGL();
 }
 
 function drawLens(x, y, m)
 {
     let strength = m * 0.00000015;
-    let baseSize = sqrt(strength) * 1800;
+    let baseSize = sqrt(strength) * 1800 * currentBgScale;
 
     // sniffing the bg pixel under the lens to see if its sitting on smth bright
     let alignBoost = 0;
@@ -189,12 +230,14 @@ function draw()
         massSlider.hide();
         presetSelect.hide();
         toggleBtn.hide();
+        bgSelect.hide();
     }
     else
     {
         massSlider.show();
         presetSelect.show();
         toggleBtn.show();
+        bgSelect.show();
     }
 
     mass = massSlider.value();
@@ -212,9 +255,17 @@ function draw()
     // mass label inline with slider
     text('mass', 170, 33);
 
-    // stats block starts below the three controls
-    let statsY = 145;
+    // stats block starts below the four controls
+    // stats block starts below the four controls
+    let statsY = 175;
     let lineH  = 25;
+
+    // subtle backing box for readability
+    noStroke();
+    fill(0, 0, 0, 35);
+    rect(10, statsY - 18, 260, lineH * 5 + 15);
+
+    fill(180, 210, 255);
 
     fill(180, 210, 255);
     textSize(10);
@@ -222,6 +273,7 @@ function draw()
     text('DISTORTION', 20, statsY + lineH);
     text('LENS POSITION', 20, statsY + lineH * 2);
     text('LENSING', 20, statsY + lineH * 3);
+    text('BACKGROUND', 20, statsY + lineH * 4);
 
     fill(255);
     textSize(12);
@@ -241,6 +293,9 @@ function draw()
 
     textSize(12);
     text(lensingVisible ? 'ON' : 'OFF', 120, statsY + lineH * 3);
+
+    fill(255);
+    text(currentBg, 120, statsY + lineH * 4);
 }
 
 function mousePressed()
@@ -250,7 +305,7 @@ function mousePressed()
         return;
     }
 
-    if(mouseX < 220 && mouseY < 115)
+    if(mouseX < 220 && mouseY < 160)
     {
         return;
     }   
