@@ -20,7 +20,7 @@ const backgrounds = [
     },
     {
         name: 'HUDF 2014',
-        path: 'assets/bg2.webp',
+        path: 'assets/bg2.jpg',
         scale: 0.8
     },
     {
