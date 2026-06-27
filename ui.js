@@ -190,7 +190,7 @@ function drawLens(x, y, m)
     // sniffing the bg pixel under the lens to see if its sitting on smth bright
     let alignBoost = 0;
 
-    if(bgImg)
+    if(bgImg && currentPreset === 'simple')
     {
         let sx = floor((x / width) * bgImg.width);
         let sy = floor((y / height) * bgImg.height);
