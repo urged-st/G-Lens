@@ -26,7 +26,7 @@ const backgrounds = [
     {
         name: 'HUDF 2003',
         path: 'assets/bg3.jpg',
-        scale: 0.5
+        scale: 0.7
     }
 ];
 
@@ -185,52 +185,32 @@ function setup()
 function drawLens(x, y, m)
 {
     let strength = m * 0.00000015 * currentBgScale;
-    let baseSize = sqrt(strength) * width * 2.4;
-
-    // sniffing the bg pixel under the lens to see if its sitting on smth bright
-    let alignBoost = 0;
-
-    if(bgImg && currentPreset === 'simple')
-    {
-        let sx = floor((x / width) * bgImg.width);
-        let sy = floor((y / height) * bgImg.height);
-
-        sx = constrain(sx, 0, bgImg.width - 1);
-        sy = constrain(sy, 0, bgImg.height - 1);
-
-        let px = bgImg.get(sx, sy);
-        let brightness = (px[0] + px[1] + px[2]) / 3;
-
-        alignBoost = map(brightness, 100, 255, 0, 1);
-        alignBoost = constrain(alignBoost, 0, 1);
-    }
+    let baseSize = sqrt(strength) * width * 2;
 
     if(currentPreset === 'simple')
     {
-        // bright blue glow ring — obvious but not a flat disc
-        for(let r = baseSize * 1.4; r > baseSize * 0.6; r -= 3)
+        // outer glow fades from distortion edge inward
+        for(let r = baseSize * 2; r > baseSize * 0.6; r -= 3)
         {
-            let a = map(r, baseSize * 0.6, baseSize * 1.4, 120, 0);
+            let a = map(r, baseSize * 0.6, baseSize * 2, 100, 0);
             fill(100, 180, 255, a);
             noStroke();
             circle(x, y, r);
         }
 
-        // solid bright core so it's still clearly visible
+        // solid bright core so it's clearly visible
         fill(160, 210, 255, 180);
         noStroke();
         circle(x, y, baseSize * 0.6);
     }
     else if(currentPreset === 'blackhole')
     {
-        // outer glow for the bh
-        for(let r = baseSize * 2; r > baseSize; r -= 4)
+        let bhR = baseSize * 0.6 * currentBgScale;
+
+        // faint wide halo so no visible gap between glow and distort
+        for(let r = baseSize * 2; r > bhR; r -= 4)
         {
-            let glowAlpha = map(r, baseSize, baseSize * 2, 60, 0);
-
-            // glow gets a lil juicier when something bright's behind it
-            glowAlpha += alignBoost * 40;
-
+            let glowAlpha = map(r, bhR, baseSize * 2, 25, 0);
             fill(255, 160, 40, glowAlpha);
             noStroke();
             circle(x, y, r);
@@ -239,15 +219,13 @@ function drawLens(x, y, m)
         // dark centre
         fill(0);
         noStroke();
-        circle(x, y, baseSize);
+        circle(x, y, bhR);
     }
     else if(currentPreset === 'neutronstar')
     {
         // tight, bright core
-        let glowAlpha = 80 + alignBoost * 40;
-
         noStroke();
-        fill(180, 220, 255, glowAlpha);
+        fill(180, 220, 255, 80);
         circle(x, y, baseSize * 1.5);
         fill(220, 240, 255);
         circle(x, y, baseSize * 0.6);
@@ -258,10 +236,6 @@ function drawLens(x, y, m)
         for(let r = baseSize * 2.5; r > 0; r -= 6)
         {
             let glowAlpha = map(r, 0, baseSize * 2.5, 40, 0);
-
-            // same brightness sniff trick as the other presets
-            glowAlpha += alignBoost * 25;
-
             fill(160, 100, 255, glowAlpha);
             noStroke();
             circle(x, y, r);
