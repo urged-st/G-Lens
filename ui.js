@@ -1,5 +1,6 @@
 let massSlider;
 let toggleBtn;
+let resetBtn;
 let dragStartX = 0;
 let dragStartY = 0;
 let draggingLens = false;
@@ -13,14 +14,19 @@ let currentBgScale = 1.0;
 
 const backgrounds = [
     {
-        name: 'Leo P (Dwarf Galaxy)',
+        name: 'Leo P (JWST)',
         path: 'assets/LeoP.jpg',
         scale: 1.0
     },
     {
-        name: 'Hubble Ultra Deep Field 2014',          // TODO: rename once you know what it is
-        path: 'assets/bg2.webp',        // TODO: swap to your actual filename
-        scale: 0.8                     // TODO: tune by eye once it's loaded
+        name: 'HUDF 2014',
+        path: 'assets/bg2.webp',
+        scale: 0.8
+    },
+    {
+        name: 'HUDF 2003',
+        path: 'assets/bg3.jpg',
+        scale: 0.5
     }
 ];
 
@@ -130,8 +136,45 @@ function setup()
         currentBg = chosen.name;
         currentBgScale = chosen.scale;
 
-        bgImg = loadImage(chosen.path);
-        setBackground(chosen.path, chosen.scale);
+        // null triggers loading text in draw() while fetch is in flight
+        bgImg = null;
+        loadImage(chosen.path, img =>
+        {
+            bgImg = img;
+            setBackground(chosen.path, chosen.scale);
+        });
+    });
+
+    // reset button
+    resetBtn = createButton('reset');
+    resetBtn.position(20, 170);
+    resetBtn.style('z-index', '2');
+    resetBtn.style('font-family', 'Space Mono, monospace');
+    resetBtn.style('font-size', '11px');
+    resetBtn.style('background', 'rgba(10,18,32,0.85)');
+    resetBtn.style('color', 'rgba(255,255,255,0.45)');
+    resetBtn.style('border', '1px solid rgba(255,255,255,0.2)');
+    resetBtn.style('border-radius', '6px');
+    resetBtn.style('padding', '6px 12px');
+    resetBtn.style('cursor', 'pointer');
+    resetBtn.style('letter-spacing', '0.1em');
+    resetBtn.style('text-transform', 'uppercase');
+
+    resetBtn.mousePressed(() =>
+    {
+        // sliders + preset back to defaults
+        massSlider.value(2500);
+        currentPreset = 'simple';
+        presetSelect.value('Simple');
+        mass = 2500;
+
+        // lensing on
+        lensingVisible = true;
+        toggleBtn.html('hide lensing');
+
+        // lens back to centre
+        lensX = 0.5;
+        lensY = 0.5;
     });
 
     currentBg = backgrounds[0].name;
@@ -141,8 +184,8 @@ function setup()
 
 function drawLens(x, y, m)
 {
-    let strength = m * 0.00000015;
-    let baseSize = sqrt(strength) * 1800 * currentBgScale;
+    let strength = m * 0.00000015 * currentBgScale;
+    let baseSize = sqrt(strength) * width * 2.4;
 
     // sniffing the bg pixel under the lens to see if its sitting on smth bright
     let alignBoost = 0;
@@ -164,9 +207,19 @@ function drawLens(x, y, m)
 
     if(currentPreset === 'simple')
     {
+        // bright blue glow ring — obvious but not a flat disc
+        for(let r = baseSize * 1.4; r > baseSize * 0.6; r -= 3)
+        {
+            let a = map(r, baseSize * 0.6, baseSize * 1.4, 120, 0);
+            fill(100, 180, 255, a);
+            noStroke();
+            circle(x, y, r);
+        }
+
+        // solid bright core so it's still clearly visible
+        fill(160, 210, 255, 180);
         noStroke();
-        fill(100, 180, 255);
-        circle(x, y, baseSize * 1.4);
+        circle(x, y, baseSize * 0.6);
     }
     else if(currentPreset === 'blackhole')
     {
@@ -190,7 +243,7 @@ function drawLens(x, y, m)
     }
     else if(currentPreset === 'neutronstar')
     {
-        // tight, bright core 
+        // tight, bright core
         let glowAlpha = 80 + alignBoost * 40;
 
         noStroke();
@@ -201,7 +254,7 @@ function drawLens(x, y, m)
     }
     else if(currentPreset === 'galaxycluster')
     {
-        // wide, faint haze (⬇ if need be u can change if it looks bad)
+        // wide, faint haze
         for(let r = baseSize * 2.5; r > 0; r -= 6)
         {
             let glowAlpha = map(r, 0, baseSize * 2.5, 40, 0);
@@ -231,6 +284,7 @@ function draw()
         presetSelect.hide();
         toggleBtn.hide();
         bgSelect.hide();
+        resetBtn.hide();
     }
     else
     {
@@ -238,12 +292,23 @@ function draw()
         presetSelect.show();
         toggleBtn.show();
         bgSelect.show();
+        resetBtn.show();
     }
 
     mass = massSlider.value();
 
     let x = lensX * width;
     let y = lensY * height;
+
+    // loading indicator while bg image is fetching
+    if(!bgImg)
+    {
+        fill(180, 210, 255, 120);
+        textSize(13);
+        textAlign(CENTER, CENTER);
+        text('loading background...', width / 2, height / 2);
+        textAlign(LEFT, BASELINE);
+    }
 
     if (lensingVisible) drawLens(x, y, mass);
 
@@ -252,34 +317,32 @@ function draw()
     textSize(12);
     fill(255);
 
-    // mass label inline with slider
-    text('mass', 170, 33);
+    // control labels inline with each element
+    text('mass',   170, 33);
+    text('preset', 170, 68);
+    text('toggle', 170, 103);
 
-    // stats block starts below the four controls
-    // stats block starts below the four controls
-    let statsY = 175;
-    let lineH  = 25;
+    // stats block — sits below reset button
+    let statsY = 220;
+    let lineH  = 22;
 
-    // subtle backing box for readability
+    // backing rect — top padding 10, bottom padding 10
     noStroke();
-    fill(0, 0, 0, 35);
-    rect(10, statsY - 18, 260, lineH * 5 + 15);
-
-    fill(180, 210, 255);
+    fill(0, 0, 0, 100);
+    rect(10, statsY - 10, 260, lineH * 4 + 20);
 
     fill(180, 210, 255);
     textSize(10);
-    text('PRESET', 20, statsY);
-    text('DISTORTION', 20, statsY + lineH);
-    text('LENS POSITION', 20, statsY + lineH * 2);
-    text('LENSING', 20, statsY + lineH * 3);
-    text('BACKGROUND', 20, statsY + lineH * 4);
+    text('PRESET',        20, statsY + 4);
+    text('DISTORTION',    20, statsY + lineH + 4);
+    text('LENS POSITION', 20, statsY + lineH * 2 + 4);
+    text('LENSING',       20, statsY + lineH * 3 + 4);
 
     fill(255);
     textSize(12);
-    text(presets[currentPreset].label, 120, statsY);
-    text(nf(mass * 0.00000015, 1, 4), 120, statsY + lineH);
-    text(nf(lensX, 1, 3) + '  ' + nf(lensY, 1, 3), 120, statsY + lineH * 2);
+    text(presets[currentPreset].label,               120, statsY + 4);
+    text(nf(mass * 0.00000015 * currentBgScale, 1, 4), 120, statsY + lineH + 4);
+    text(nf(lensX, 1, 3) + '  ' + nf(lensY, 1, 3), 120, statsY + lineH * 2 + 4);
 
     // lensing status colour
     if(lensingVisible)
@@ -292,10 +355,7 @@ function draw()
     }
 
     textSize(12);
-    text(lensingVisible ? 'ON' : 'OFF', 120, statsY + lineH * 3);
-
-    fill(255);
-    text(currentBg, 120, statsY + lineH * 4);
+    text(lensingVisible ? 'ON' : 'OFF', 120, statsY + lineH * 3 + 4);
 }
 
 function mousePressed()
@@ -305,16 +365,12 @@ function mousePressed()
         return;
     }
 
-    if(mouseX < 220 && mouseY < 160)
+    if(mouseX < 220 && mouseY < 340)
     {
         return;
-    }   
+    }
 
-
-    if (!lensingVisible) return;
-
-    
-
+    // drag works regardless of lensing toggle — looks broken otherwise
     let lensScreenX = lensX * width;
     let lensScreenY = lensY * height;
 
@@ -335,6 +391,30 @@ function mouseDragged()
 
     lensX = (mouseX - dragStartX) / width;
     lensY = (mouseY - dragStartY) / height;
+
+    // keep lens out of the controls zone (top-left ~220x320px)
+    // if it's in the x range of the panel, push it below the panel bottom
+    let panelW = 220 / width;
+    let panelH = 340 / height;
+
+    if(lensX < panelW && lensY < panelH)
+    {
+        // nudge whichever axis is closer to the panel edge
+        let distFromRight  = lensX - panelW;
+        let distFromBottom = lensY - panelH;
+
+        if(distFromRight > distFromBottom)
+        {
+            lensX = panelW;
+        }
+        else
+        {
+            lensY = panelH;
+        }
+    }
+
+    lensX = constrain(lensX, 0, 1);
+    lensY = constrain(lensY, 0, 1);
 }
 
 function mouseReleased()
